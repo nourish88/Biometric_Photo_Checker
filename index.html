@@ -14,72 +14,248 @@
     />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
-  <body>
-    <header>
-      <div class="header-content">
-        <div class="icon">🛂</div>
-        <h1 style="font-size: 1.75rem; margin: 0 0 0.5rem 0; font-weight: 700">
-          ICAO Biyometrik Fotoğraf Kontrolü
-        </h1>
-        <div style="font-size: 1.05rem; opacity: 0.95; font-weight: 400">
-          Pasaport fotoğrafınızın uygunluğunu anında kontrol edin
-        </div>
-      </div>
-    </header>
-    <main>
-      <div class="card">
-        <div class="section-title">
-          <svg viewBox="0 0 24 24">
-            <path
-              d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
-            />
-          </svg>
-          <span>Nasıl çalışır?</span>
-        </div>
-        <ol class="step-list">
-          <li><b>Fotoğrafınızı seçin</b> — yükleme yok, cihazınızda kalır</li>
-          <li>Yapay zeka ICAO kurallarını kontrol eder</li>
-          <li>Sonuçları anında görün</li>
-        </ol>
-
-        <div class="file-input-container">
-          <label for="fileInput" class="file-input-label" id="choosePhotoBtn">
-            <svg viewBox="0 0 24 24">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-            <span>Fotoğraf Seç</span>
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            id="fileInput"
-            aria-label="Fotoğrafınızı seçin"
-          />
-        </div>
-
-        <div id="loading">
-          <div class="loader"></div>
-          <div>Yapay zeka modeli yükleniyor...</div>
-          <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
+  <body style="background: #f5f7fa; margin: 0">
+    <div
+      style="
+        width: 100vw;
+        min-height: 220px;
+        background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+        margin: 0;
+        padding: 0;
+      "
+    >
+      <header>
+        <div
+          class="header-content"
+          style="
+            max-width: 1000px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.5rem 2rem 1.5rem;
+            color: #fff;
+          "
+        >
+          <div class="icon" style="font-size: 2.5rem">🛂</div>
+          <h1
+            style="
+              font-size: 2.2rem;
+              margin: 0 0 0.5rem 0;
+              font-weight: 700;
+              letter-spacing: -1px;
+            "
+          >
+            ICAO Biyometrik Fotoğraf Kontrolü
+          </h1>
+          <div
+            style="
+              font-size: 1.18rem;
+              opacity: 0.98;
+              font-weight: 400;
+              margin-bottom: 0.5rem;
+            "
+          >
+            <b>Yapay Zeka Destekli</b> otomatik biyometrik fotoğraf analizi
           </div>
         </div>
+      </header>
+    </div>
+    <div
+      class="container"
+      style="max-width: 1000px; width: 100%; margin: 0 auto; padding: 0 1rem"
+    >
+      <main>
+        <div
+          class="card"
+          style="
+            max-width: 1000px;
+            width: 100%;
+            margin: 2rem auto;
+            box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            border-radius: 14px;
+            padding: 2.2rem 1.5rem 2.5rem 1.5rem;
+          "
+        >
+          <div class="section-title" style="margin-bottom: 1.2rem">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+              />
+            </svg>
+            <span>Nasıl çalışır?</span>
+          </div>
+          <ol class="step-list" style="font-size: 1.08rem">
+            <li><b>Fotoğrafınızı seçin</b> — yükleme yok, cihazınızda kalır</li>
+            <li>Yapay zeka ICAO kurallarını kontrol eder</li>
+            <li>Sonuçları anında görün</li>
+          </ol>
 
-        <img
-          id="inputImage"
-          src=""
-          alt="Seçili fotoğraf"
-          style="display: none"
-        />
+          <div
+            class="file-input-container"
+            style="margin: 2rem 0 1.5rem 0; text-align: center"
+          >
+            <label
+              for="fileInput"
+              class="file-input-label"
+              id="choosePhotoBtn"
+              style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: #2563eb;
+                color: #fff;
+                font-weight: 500;
+                font-size: 1.1rem;
+                border-radius: 8px;
+                padding: 0.7em 1.5em;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+                transition: background 0.2s;
+              "
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="#fff" />
+              </svg>
+              <span>Fotoğraf Seç</span>
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              id="fileInput"
+              aria-label="Fotoğrafınızı seçin"
+              style="display: none"
+            />
+          </div>
 
-        <div id="result"></div>
+          <button
+            id="analyzeBtn"
+            style="
+              display: none;
+              margin: 1rem 0 2rem 0;
+              width: 100%;
+              font-size: 1.1rem;
+              background: #1976d2;
+              color: #fff;
+              border: none;
+              border-radius: 8px;
+              padding: 0.8em 0;
+              font-weight: 500;
+              cursor: pointer;
+            "
+          >
+            Analiz Et
+          </button>
 
-        <div class="note">
-          <b>Gizlilik Garantisi:</b> Fotoğrafınız asla sunuculara gönderilmez.
-          Tüm işlemler tarayıcınızda gerçekleşir.
+          <div
+            id="loading"
+            style="
+              display: none;
+              text-align: center;
+              padding: 2rem 0;
+              font-size: 1.25rem;
+              background: #f7fafd;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+              margin: 1.5rem 0;
+            "
+          >
+            <div class="loader" style="margin: 0 auto 1rem auto"></div>
+            <div
+              id="loadingText"
+              style="font-size: 1.2em; font-weight: 500; color: #1976d2"
+            >
+              Yapay zeka modelleri yükleniyor...
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+          </div>
+
+          <div
+            class="image-results-container"
+            style="
+              display: flex;
+              gap: 2.5rem;
+              justify-content: center;
+              align-items: stretch;
+              margin-top: 2.5rem;
+              flex-wrap: wrap;
+              width: 100%;
+            "
+          >
+            <div
+              style="
+                flex: 1 1 0;
+                min-width: 320px;
+                max-width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              "
+            >
+              <div style="font-weight: 500; margin-bottom: 0.5rem">
+                Orijinal Fotoğraf
+              </div>
+              <img
+                id="inputImage"
+                src=""
+                alt="Seçili fotoğraf"
+                style="
+                  display: none;
+                  max-width: 100%;
+                  max-height: 420px;
+                  border: 1px solid #eee;
+                  border-radius: 8px;
+                  background: #fafafa;
+                "
+              />
+            </div>
+            <div
+              style="
+                flex: 1 1 0;
+                min-width: 320px;
+                max-width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+              "
+            >
+              <div style="font-weight: 500; margin-bottom: 0.5rem">
+                Analiz Sonucu
+              </div>
+              <canvas
+                id="resultCanvas"
+                style="
+                  display: none;
+                  max-width: 100%;
+                  max-height: 420px;
+                  border: 1px solid #eee;
+                  border-radius: 8px;
+                  background: #fafafa;
+                "
+              ></canvas>
+            </div>
+          </div>
+
+          <div id="resultPanel" style="margin-top: 2.5rem; display: none">
+            <div
+              style="font-weight: 600; font-size: 1.1rem; margin-bottom: 0.5rem"
+            >
+              ICAO Kontrol Sonuçları
+            </div>
+            <ul
+              id="resultList"
+              style="list-style: none; padding: 0; margin: 0"
+            ></ul>
+          </div>
+
+          <div class="note">
+            <b>Gizlilik Garantisi:</b> Fotoğrafınız asla sunuculara gönderilmez.
+            Tüm işlemler tarayıcınızda gerçekleşir.
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
     <script src="js/app.js"></script>
     <script>
       // Wait for all libraries to load

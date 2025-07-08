@@ -567,7 +567,7 @@ async function loadModel() {
 
     setTimeout(() => {
       if (loadingDiv) {
-        loadingDiv.style.display = "none";
+          loadingDiv.style.display = "none";
       }
     }, 1000);
 
@@ -1015,6 +1015,258 @@ analyzeBtn.addEventListener("click", async () => {
               info: "Yüz net ve odakta olmalıdır. Fotoğrafı daha net çekin veya yeniden tarayın.",
             });
           }
+        }
+
+        // --- ICAO CHECK: NO RED EYES ---
+        // Left eye: landmarks 33 (center), 159 (top), 145 (bottom), 133 (left), 153 (right)
+        // Right eye: 263 (center), 386 (top), 374 (bottom), 362 (right), 380 (left)
+        function getEyeBox(indices) {
+          const xs = indices.map((i) => keypoints[i][0]);
+          const ys = indices.map((i) => keypoints[i][1]);
+          return {
+            minX: Math.max(0, Math.min(...xs) - 2),
+            maxX: Math.min(inputImage.naturalWidth, Math.max(...xs) + 2),
+            minY: Math.max(0, Math.min(...ys) - 2),
+            maxY: Math.min(inputImage.naturalHeight, Math.max(...ys) + 2),
+          };
+        }
+        const leftEyeIndices = [33, 159, 145, 133, 153];
+        const rightEyeIndices = [263, 386, 374, 362, 380];
+        const leftEyeBox = getEyeBox(leftEyeIndices);
+        const rightEyeBox = getEyeBox(rightEyeIndices);
+        function avgRGB(box) {
+          const w = Math.max(1, box.maxX - box.minX);
+          const h = Math.max(1, box.maxY - box.minY);
+          const tmpCanvas = document.createElement("canvas");
+          tmpCanvas.width = w;
+          tmpCanvas.height = h;
+          const tmpCtx = tmpCanvas.getContext("2d");
+          tmpCtx.drawImage(inputImage, box.minX, box.minY, w, h, 0, 0, w, h);
+          const data = tmpCtx.getImageData(0, 0, w, h).data;
+          let r = 0,
+            g = 0,
+            b = 0,
+            count = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+          }
+          return { r: r / count, g: g / count, b: b / count };
+        }
+        const leftAvg = avgRGB(leftEyeBox);
+        const rightAvg = avgRGB(rightEyeBox);
+        console.log(
+          `[DEBUG] Left eye avg RGB:`,
+          leftAvg,
+          "Right eye avg RGB:",
+          rightAvg
+        );
+        // Red eye if red channel is much higher than green/blue
+        function isRedEye(avg) {
+          // Typical red eye: very high red, low green/blue, and much higher than both
+          return (
+            avg.r > 150 &&
+            avg.g < 80 &&
+            avg.b < 80 &&
+            avg.r > avg.g * 1.5 &&
+            avg.r > avg.b * 1.5
+          );
+        }
+        const leftRed = isRedEye(leftAvg);
+        const rightRed = isRedEye(rightAvg);
+        if (!leftRed && !rightRed) {
+          results.push({
+            passed: true,
+            message: "Kırmızı göz tespit edilmedi.",
+            info: "Gözlerde kırmızı yansıma yok. ICAO için uygundur.",
+          });
+        } else {
+          let which = [];
+          if (leftRed) which.push("sol göz");
+          if (rightRed) which.push("sağ göz");
+          results.push({
+            passed: false,
+            message: `Kırmızı göz tespit edildi (${which.join(", ")}).`,
+            info: "Gözlerde kırmızı yansıma olmamalı. Farklı bir fotoğraf çekin veya flaşsız çekin.",
+          });
+        }
+
+        // --- ICAO CHECK: GLASSES AND REFLECTION ---
+        // Gözlük camında yansıma veya gözlerin kapalı olması kontrolü
+        function analyzeGlassesReflection(box, avg) {
+          const w = Math.max(1, box.maxX - box.minX);
+          const h = Math.max(1, box.maxY - box.minY);
+          const tmpCanvas = document.createElement("canvas");
+          tmpCanvas.width = w;
+          tmpCanvas.height = h;
+          const tmpCtx = tmpCanvas.getContext("2d");
+          tmpCtx.drawImage(inputImage, box.minX, box.minY, w, h, 0, 0, w, h);
+          const data = tmpCtx.getImageData(0, 0, w, h).data;
+          let min = 255,
+            max = 0,
+            sum = 0,
+            count = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            // Gözlük camı yansıması genellikle çok parlak (beyaz) olur
+            const brightness =
+              0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            min = Math.min(min, brightness);
+            max = Math.max(max, brightness);
+            sum += brightness;
+            count++;
+          }
+          const avgBrightness = sum / count;
+          const contrast = max - min;
+          // Yüksek parlaklık: camda yansıma
+          if (avgBrightness > 210 && contrast < 60) {
+            return {
+              passed: false,
+              message: "Gözlük camında aşırı parlaklık/yansıma tespit edildi.",
+              info: "Gözlük camında yansıma olmamalı. Flaşsız veya farklı açıdan fotoğraf çekin.",
+            };
+          }
+          // Çok düşük parlaklık: koyu cam
+          if (avgBrightness < 60) {
+            return {
+              passed: false,
+              message: "Gözlük camı çok koyu, gözler görünmüyor.",
+              info: "Gözlük camı gözleri kapatmamalı. Açık renkli cam veya gözlüksüz fotoğraf kullanın.",
+            };
+          }
+          // Çok düşük kontrast: camda leke/engelleyici
+          if (contrast < 20) {
+            return {
+              passed: false,
+              message: "Gözlük camı gözleri net göstermiyor.",
+              info: "Gözlük camı gözleri net göstermeli. Camda leke veya buğu olmamalı.",
+            };
+          }
+          return {
+            passed: true,
+            message: "Gözlük camı ve gözler uygun.",
+            info: "Gözlük camında yansıma veya engelleyici yok.",
+          };
+        }
+        const leftGlasses = analyzeGlassesReflection(leftEyeBox, leftAvg);
+        const rightGlasses = analyzeGlassesReflection(rightEyeBox, rightAvg);
+        if (!leftGlasses.passed || !rightGlasses.passed) {
+          let which = [];
+          if (!leftGlasses.passed) which.push("sol göz");
+          if (!rightGlasses.passed) which.push("sağ göz");
+          results.push({
+            passed: false,
+            message: `${which.join(", ")} için gözlük camı/yanlışlık: ${
+              !leftGlasses.passed ? leftGlasses.message : rightGlasses.message
+            }`,
+            info: `${
+              !leftGlasses.passed ? leftGlasses.info : rightGlasses.info
+            }`,
+          });
+        } else {
+          results.push({
+            passed: true,
+            message: "Gözlük camı ve gözler uygun.",
+            info: "Gözlük camında yansıma veya engelleyici yok. ICAO için uygundur.",
+          });
+        }
+
+        // --- ICAO CHECK: FACE OBSTRUCTION (Şapka, saç, takı, maske, el, vb.) ---
+        // Alın, çene ve yanak bölgelerinde cilt rengi dışında belirgin engelleyici var mı?
+        function getRegionBox(indices, margin = 6) {
+          const xs = indices.map((i) => keypoints[i][0]);
+          const ys = indices.map((i) => keypoints[i][1]);
+          return {
+            minX: Math.max(0, Math.min(...xs) - margin),
+            maxX: Math.min(inputImage.naturalWidth, Math.max(...xs) + margin),
+            minY: Math.max(0, Math.min(...ys) - margin),
+            maxY: Math.min(inputImage.naturalHeight, Math.max(...ys) + margin),
+          };
+        }
+        // Alın: 10 (üst), 338 (sol), 297 (sağ)
+        const foreheadBox = getRegionBox([10, 338, 297]);
+        // Çene: 152 (alt), 176 (sol), 150 (sağ)
+        const chinBox = getRegionBox([152, 176, 150]);
+        // Sol yanak: 234 (sol), 93 (orta), 132 (alt)
+        const leftCheekBox = getRegionBox([234, 93, 132]);
+        // Sağ yanak: 454 (sağ), 323 (orta), 361 (alt)
+        const rightCheekBox = getRegionBox([454, 323, 361]);
+        function analyzeSkinRegion(box) {
+          const w = Math.max(1, box.maxX - box.minX);
+          const h = Math.max(1, box.maxY - box.minY);
+          const tmpCanvas = document.createElement("canvas");
+          tmpCanvas.width = w;
+          tmpCanvas.height = h;
+          const tmpCtx = tmpCanvas.getContext("2d");
+          tmpCtx.drawImage(inputImage, box.minX, box.minY, w, h, 0, 0, w, h);
+          const data = tmpCtx.getImageData(0, 0, w, h).data;
+          let r = 0,
+            g = 0,
+            b = 0,
+            count = 0,
+            min = 255,
+            max = 0,
+            sum = 0;
+          for (let i = 0; i < data.length; i += 4) {
+            const br =
+              0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+            min = Math.min(min, br);
+            max = Math.max(max, br);
+            sum += br;
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+          }
+          const avgR = r / count;
+          const avgG = g / count;
+          const avgB = b / count;
+          const avgBrightness = sum / count;
+          const contrast = max - min;
+          // Cilt rengi: R > 80, G > 60, B > 40, R > B, R > G*0.9
+          const isSkin =
+            avgR > 80 &&
+            avgG > 60 &&
+            avgB > 40 &&
+            avgR > avgB &&
+            avgR > avgG * 0.9;
+          return { isSkin, avgR, avgG, avgB, avgBrightness, contrast };
+        }
+        const forehead = analyzeSkinRegion(foreheadBox);
+        const chin = analyzeSkinRegion(chinBox);
+        // Sakal toleransı: çene bölgesi koyu ve R/G, R/B oranı düşükse sakal olarak kabul et
+        let chinIsOk = chin.isSkin;
+        if (!chin.isSkin) {
+          if (
+            chin.avgBrightness < 90 &&
+            chin.avgR / (chin.avgG + 1) < 1.2 &&
+            chin.avgR / (chin.avgB + 1) < 1.2
+          ) {
+            chinIsOk = true; // Sakal var, sorun yok
+          }
+        }
+        const leftCheek = analyzeSkinRegion(leftCheekBox);
+        const rightCheek = analyzeSkinRegion(rightCheekBox);
+        let obstructionMessages = [];
+        if (!forehead.isSkin) obstructionMessages.push("alın");
+        if (!chinIsOk) obstructionMessages.push("çene");
+        if (!leftCheek.isSkin) obstructionMessages.push("sol yanak");
+        if (!rightCheek.isSkin) obstructionMessages.push("sağ yanak");
+        if (obstructionMessages.length > 0) {
+          results.push({
+            passed: false,
+            message: `Yüzde engelleyici nesne tespit edildi (${obstructionMessages.join(
+              ", "
+            )}).`,
+            info: "Şapka, saç, takı, maske, el veya benzeri nesneler yüzü kapatmamalı. Alın, çene ve yanaklar açık olmalı.",
+          });
+        } else {
+          results.push({
+            passed: true,
+            message: "Yüzde engelleyici nesne yok.",
+            info: "Alın, çene ve yanaklar açık. ICAO için uygundur.",
+          });
         }
 
         // Görseli çiz (draw all landmarks as blue dots for debug)
